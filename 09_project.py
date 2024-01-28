@@ -30,7 +30,7 @@ from torchvision import transforms
 
 def main():
     # Боковая панель с навигацией
-    menu = ["Детекция опухолей головного мозга", "Очистка документов", "Семантическая сегментация", "Семантическая сегментация 2"]
+    menu = ["Детекция опухолей головного мозга", "Очистка документов", "Семантическая сегментация"]
     choice = st.sidebar.radio("Навигация", menu)
 
     # Отображение контента в зависимости от выбранной страницы
@@ -40,8 +40,7 @@ def main():
         page_document_cleanup()
     elif choice == "Семантическая сегментация":
         page_semantic_segmentation()
-    elif choice == "Семантическая сегментация 2":
-        page_semantic_segmentation2()
+    
 
 def page_tumor_detection():
     st.subheader("Детекция опухолей головного мозга")
@@ -232,79 +231,7 @@ def page_semantic_segmentation():
     # col2.image(predicted_image, caption='Predicted Mask', use_column_width=True, channels='RGB')
     
     
-def page_semantic_segmentation2():
-    st.subheader("Семантическая сегментация 2")
-    # Добавьте контент для страницы 2
 
-
-
-    in_channels = 3  
-    out_channels = 1  
-    model = SemUNet(in_channels, out_channels)
-    model.load_state_dict(torch.load('semseg_best.pth'))
-    model.eval()
-    
-
-    # Streamlit webpage
-    st.title('Semantic Segmentation with U-Net')
-
-    # Threshold slider
-    threshold = st.slider('Select a threshold value', 
-                        min_value=0.30, 
-                        max_value=0.60, 
-                        value=0.45,  
-                        step=0.00001, 
-                        format='%f')
-
-    def transform_image(image):
-        transform = transforms.Compose([
-            transforms.Resize((256, 256)),   
-            transforms.ToTensor(),
-        ])
-        return transform(image).unsqueeze(0) # Ensures a 4D tensor is returned
-
-    def process_image(image_path, threshold):
-        image = Image.open(image_path).convert("RGB")
-        original_image_np = np.array(image)
-        image_tensor = transform_image(image)  # Now returns a 4D tensor
-
-        with torch.no_grad():
-            prediction = model(image_tensor)
-        predicted_mask = torch.sigmoid(prediction).data.numpy()
-        predicted_mask = (predicted_mask > threshold).astype(np.uint8)
-        predicted_mask = np.squeeze(predicted_mask, axis=(0, 1))
-
-        predicted_mask = Image.fromarray(predicted_mask)  # Convert to PIL Image for resizing
-        predicted_mask = predicted_mask.resize((original_image_np.shape[1], original_image_np.shape[0]), resample=Image.NEAREST)
-        predicted_mask = np.array(predicted_mask)  # Convert back to numpy array
-
-        violet_mask = np.zeros_like(original_image_np)
-        violet_mask[:, :, 0] = predicted_mask * 238
-        violet_mask[:, :, 2] = predicted_mask * 130
-        overlay_image_np = np.where(predicted_mask[..., None], violet_mask, original_image_np).astype(np.uint8)
-
-        return original_image_np, overlay_image_np
-
-
-
-    # File uploader
-    uploaded_file = st.file_uploader("Upload an image...", type=['jpg', 'png', 'jpeg'])
-
-    # Check if a file is uploaded and process it
-    if uploaded_file is not None:
-        st.session_state['uploaded_file'] = uploaded_file
-
-    if 'uploaded_file' in st.session_state:
-        original_image, overlay_image = process_image(st.session_state['uploaded_file'], threshold)
-
-        # Display images
-        col1, col2 = st.columns(2)
-        with col1:
-            st.image(original_image, use_column_width=True)
-            st.caption('Original Image')
-        with col2:
-            st.image(overlay_image, use_column_width=True)
-            st.caption('Segmented Image')
 
 if __name__ == "__main__":
     main()
