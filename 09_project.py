@@ -8,7 +8,7 @@ import torch # ok
 import matplotlib.pyplot as plt #ok
 from torchvision import transforms as T
 import torch.nn as nn
-import cv2
+#import cv2
 import torch.optim as optim
 import os
     
